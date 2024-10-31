@@ -6,10 +6,8 @@ const { Title, Paragraph } = Typography;
 
 const HomePage: React.FC = () => {
   const onFinish = (values: { name: string }) => {
-    history.push({
-      pathname: "/annotate",
-      search: `?name=${values.name}`,
-    });
+    localStorage.setItem('annotatorName', values.name);
+    history.push("/annotate");
   };
 
   return (

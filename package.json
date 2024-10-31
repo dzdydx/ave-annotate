@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "antd": "^5.21.6",
+    "react-player": "^2.16.0",
     "umi": "^4.3.28"
   },
   "devDependencies": {
