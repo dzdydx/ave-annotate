@@ -11,6 +11,7 @@ import {
   message,
   Descriptions,
   Space,
+  Checkbox,
 } from "antd";
 import { history } from "umi";
 import ReactPlayer from "react-player";
@@ -25,6 +26,7 @@ const AnnotatePage: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [startTime, setStartTime] = useState(1);
   const [endTime, setEndTime] = useState(1);
+  const [isAudioIrrelevant, setIsAudioIrrelevant] = useState(false);
 
   const annotatorName = localStorage.getItem("annotatorName");
   if (!annotatorName) {
@@ -177,7 +179,7 @@ const AnnotatePage: React.FC = () => {
           <Card
             title={`${annotatorName}，你好！`}
             style={{
-              height: "100%",
+              height: "auto",
               display: "flex",
               flexDirection: "column",
               padding: "16px",
@@ -317,6 +319,7 @@ const AnnotatePage: React.FC = () => {
                     max={duration}
                     precision={2}
                     onChange={handleStartTimeChange}
+                    disabled={isAudioIrrelevant}
                   />
                 </Form.Item>
                 <Form.Item
@@ -341,7 +344,21 @@ const AnnotatePage: React.FC = () => {
                     max={duration}
                     precision={2}
                     onChange={handleEndTimeChange}
+                    disabled={isAudioIrrelevant}
                   />
+                </Form.Item>
+                <Form.Item
+                  name="audioIrrelevant"
+                  valuePropName="checked"
+                >
+                  <Checkbox
+                  onChange={(e) => {
+                    setIsAudioIrrelevant(e.target.checked);
+                    form.setFieldsValue({ startTime: 0, endTime: duration });
+                  }}
+                  >
+                  音频与类别无关
+                  </Checkbox>
                 </Form.Item>
                 <Form.Item>
                   <Button type="primary" htmlType="submit">

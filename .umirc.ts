@@ -6,4 +6,5 @@ export default defineConfig({
     { path: "/annotate", component: "annotate"},
   ],
   npmClient: 'yarn',
+  esbuildMinifyIIFE: true,
 });
