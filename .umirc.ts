@@ -7,6 +7,4 @@ export default defineConfig({
   ],
   npmClient: 'yarn',
   esbuildMinifyIIFE: true,
-  plugins: ['@umijs/plugins/dist/model'],
-  model: {},
 });
