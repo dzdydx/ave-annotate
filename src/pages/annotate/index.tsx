@@ -4,7 +4,6 @@ import {
   Form,
   InputNumber,
   Button,
-  Flex,
   Splitter,
   Table,
   Card,
@@ -12,58 +11,47 @@ import {
   Descriptions,
   Space,
   Checkbox,
+  Skeleton,
+  Progress,
 } from "antd";
 import { history } from "umi";
 import ReactPlayer from "react-player";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { getVideoInfo, getAnnotations, postAnnotation, getProgress } from "@/services/api";
+import config from "@/global";
+import { Annotation } from "@/services/typings";
 
 const { Title, Paragraph } = Typography;
 
 const AnnotatePage: React.FC = () => {
   const [form] = Form.useForm();
   const videoRef = useRef<ReactPlayer>(null);
+
+  const [annotatorName, setAnnotatorName] = useState("");
+  const [completedSamples, setCompletedSamples] = useState(0);
+  const [totalSamples, setTotalSamples] = useState(0);
+
+  const [videoID, setVideoID] = useState("");
+  const [videoURL, setVideoURL] = useState("");
+  const [videoTag, setVideoTag] = useState("");
+
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+
   const [startTime, setStartTime] = useState(1);
   const [endTime, setEndTime] = useState(1);
   const [isAudioIrrelevant, setIsAudioIrrelevant] = useState(false);
 
-  const annotatorName = localStorage.getItem("annotatorName");
-  if (!annotatorName) {
-    message.error("请重新输入标注人ID");
-    history.push("/");
-  }
-
-  const fileName = "v0d00fg10000cbmruq3c77u9rr5r3h30.mp4";
-  const fileTag = "Playing Piano";
-
-  const dataSource = [
-    {
-      key: "1",
-      annotatorId: "123",
-      eventType: "Event A",
-      startTime: "00:10",
-      endTime: "00:20",
-    },
-    {
-      key: "2",
-      annotatorId: "456",
-      eventType: "Event B",
-      startTime: "01:00",
-      endTime: "01:10",
-    },
-  ];
-
   const columns = [
     {
-      title: "标注人",
-      dataIndex: "annotatorId",
-      key: "annotatorId",
+      title: "序号",
+      dataIndex: "id",
+      key: "id",
     },
     {
-      title: "事件类别",
-      dataIndex: "eventType",
-      key: "eventType",
+      title: "标注人",
+      dataIndex: "annotator",
+      key: "annotator",
     },
     {
       title: "起始时间",
@@ -75,7 +63,42 @@ const AnnotatePage: React.FC = () => {
       dataIndex: "endTime",
       key: "endTime",
     },
+    {
+      title: "音频是否相关",
+      dataIndex: "audioIrrelevant",
+      key: "audioIrrelevant",
+    },
+    {
+      title: "标注时间",
+      dataIndex: "annotateTime",
+      key: "annotateTime"
+    }
   ];
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      message.error("请先登录");
+      history.push("/");
+    }
+
+    const init = async () => {
+      const userInfo = await getProgress();
+      setAnnotatorName(userInfo.data.username);
+      setCompletedSamples(userInfo.data.completedSamples);
+      setTotalSamples(userInfo.data.totalSamples);
+
+      const videoInfo = await getVideoInfo();
+      setVideoID(videoInfo.data.videoID);
+      setVideoURL(videoInfo.data.videoURL);
+      setVideoTag(videoInfo.data.category);
+
+      const annotationInfo = await getAnnotations(videoInfo.data.videoID);
+      setAnnotations(annotationInfo.data.annotations);
+    };
+
+    init();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -149,235 +172,256 @@ const AnnotatePage: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        height: "100%",
-        padding: "48px 48px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Splitter
-        style={{ height: "100%", boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}
+    <div>
+      <Progress
+        type="line"
+        percent={(completedSamples / totalSamples) * 100}
+        format={() => `${completedSamples}/${totalSamples}`}
+        percentPosition={{ align: "center", type: "inner" }}
+        size={["100%", 25]}
+      />
+      <div
+        style={{
+          height: "100%",
+          padding: "48px 48px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Splitter.Panel defaultSize="40%" min="30%" max="70%">
-          <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
-            <ReactPlayer
-              ref={videoRef}
-              controls
-              url="/videos/v0d00fg10000cbmruq3c77u9rr5r3h30.mp4"
-              width="100%"
-              height="100%"
-              style={{ objectFit: "cover" }}
-              onDuration={(duration) => setDuration(duration)}
-            />
-          </div>
-        </Splitter.Panel>
-        <Splitter.Panel>
-          <Card
-            title={`${annotatorName}，你好！`}
-            style={{
-              height: "auto",
-              display: "flex",
-              flexDirection: "column",
-              padding: "16px",
-            }}
-            styles={{
-              body: {
-                flex: 1,
+        <Splitter
+          style={{ height: "100%", boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}
+        >
+          <Splitter.Panel defaultSize="40%" min="30%" max="70%">
+            <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
+              <ReactPlayer
+                ref={videoRef}
+                controls
+                url={`${config.baseURL}${videoURL}`}
+                width="100%"
+                height="100%"
+                style={{ objectFit: "cover" }}
+                onDuration={(duration) => setDuration(duration)}
+              />
+            </div>
+          </Splitter.Panel>
+          <Splitter.Panel>
+            <Card
+              title={`${annotatorName}，你好！`}
+              style={{
+                height: "auto",
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between",
-              },
-            }}
-          >
-            <Descriptions
-              title={
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <Title level={5}>视频信息</Title>
-                  <Space size="large">
-                    <Button icon={<LeftOutlined />}>上一个文件</Button>
-                    <Button icon={<RightOutlined />}>下一个文件</Button>
-                  </Space>
-                </div>
-              }
+                padding: "16px",
+              }}
+              styles={{
+                body: {
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                },
+              }}
             >
-              <Descriptions.Item label="文件名">{fileName}</Descriptions.Item>
-              <Descriptions.Item label="文件标签">{fileTag}</Descriptions.Item>
-              <Descriptions.Item label="时长">
-                {(currentTime ?? 0).toFixed(2)} / {(duration ?? 0).toFixed(2)}
-              </Descriptions.Item>
-            </Descriptions>
-            <div
-              style={{ position: "relative", width: "80%", marginTop: "20px" }}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={handleDrop}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  zIndex: 10,
-                  top: 0,
-                  left: "0",
-                  width: `${(startTime / duration) * 100}%`,
-                  height: "100%",
-                  backgroundColor: "rgba(128, 128, 128, 0.5)",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "45%",
-                    right: 0,
-                    width: "10px",
-                    height: "10%",
-                    backgroundColor: "yellowgreen",
-                    cursor: "ew-resize",
-                  }}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, "start")}
-                />
-              </div>
-              <div
-                style={{
-                  position: "absolute",
-                  zIndex: 10,
-                  top: 0,
-                  right: "0",
-                  width: `${(1 - endTime / duration) * 100}%`,
-                  height: "100%",
-                  backgroundColor: "rgba(128, 128, 128, 0.5)",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "45%",
-                    left: 0,
-                    width: "10px",
-                    height: "10%",
-                    backgroundColor: "yellowgreen",
-                    cursor: "ew-resize",
-                  }}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, "end")}
-                />
-              </div>
-              <img
-                src="/melspecs/v0d00fg10000cbmruq3c77u9rr5r3h30.png"
-                alt="Mel Spectrogram"
-                style={{ width: "100%", height: "auto" }}
-                draggable={false}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: `calc(12px + ${(currentTime / duration) * 97.8}%)`,
-                  width: "2px",
-                  height: "90%",
-                  backgroundColor: "red",
-                }}
-              />
-            </div>
-            <div>
-              <Title level={5}>标注事件</Title>
-              <Form
-                form={form}
-                name="annotation"
-                layout="inline"
-                onFinish={onFinish}
-                style={{ width: "80%", marginTop: "20px" }}
-              >
-                <Form.Item
-                  label="起始时间"
-                  name="startTime"
-                  rules={[
-                    { required: true, message: "请输入起始时间!" },
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        if (!value || value < getFieldValue("endTime")) {
-                          return Promise.resolve();
-                        }
-                        return Promise.reject(
-                          new Error("起始时间必须小于结束时间!")
-                        );
-                      },
-                    }),
-                  ]}
-                >
-                  <InputNumber
-                    min={0}
-                    max={duration}
-                    precision={2}
-                    onChange={handleStartTimeChange}
-                    disabled={isAudioIrrelevant}
-                  />
-                </Form.Item>
-                <Form.Item
-                  label="结束时间"
-                  name="endTime"
-                  rules={[
-                    { required: true, message: "请输入结束时间!" },
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        if (!value || value > getFieldValue("startTime")) {
-                          return Promise.resolve();
-                        }
-                        return Promise.reject(
-                          new Error("结束时间必须大于起始时间!")
-                        );
-                      },
-                    }),
-                  ]}
-                >
-                  <InputNumber
-                    min={0}
-                    max={duration}
-                    precision={2}
-                    onChange={handleEndTimeChange}
-                    disabled={isAudioIrrelevant}
-                  />
-                </Form.Item>
-                <Form.Item
-                  name="audioIrrelevant"
-                  valuePropName="checked"
-                >
-                  <Checkbox
-                  onChange={(e) => {
-                    setIsAudioIrrelevant(e.target.checked);
-                    form.setFieldsValue({ startTime: 0, endTime: duration });
-                  }}
+              <Descriptions
+                title={
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
                   >
-                  音频与类别无关
-                  </Checkbox>
-                </Form.Item>
-                <Form.Item>
-                  <Button type="primary" htmlType="submit">
-                    提交
-                  </Button>
-                </Form.Item>
-              </Form>
-            </div>
-            <div>
-              <Title level={5}>标注历史</Title>
-              <Table
-                dataSource={dataSource}
-                columns={columns}
-                style={{ width: "80%", marginTop: "20px", marginBottom: 0 }}
-              />
-            </div>
-          </Card>
-        </Splitter.Panel>
-      </Splitter>
+                    <Title level={5}>视频信息</Title>
+                    {
+                      // TODO: add this button back
+                      /* <Space size="large">
+                    <Button icon={<RightOutlined />} onClick={() => {
+                      history.push(`/annotate?videoID=${nextVideoID}`);
+                    }}>下一个文件</Button>
+                  </Space> */
+                    }
+                  </div>
+                }
+              >
+                <Descriptions.Item label="样本ID">
+                  {videoID}
+                </Descriptions.Item>
+                <Descriptions.Item label="文件标签">
+                  {videoTag}
+                </Descriptions.Item>
+                <Descriptions.Item label="时长">
+                  {(currentTime ?? 0).toFixed(2)} / {(duration ?? 0).toFixed(2)}
+                </Descriptions.Item>
+              </Descriptions>
+              <div
+                style={{
+                  position: "relative",
+                  width: "80%",
+                  marginTop: "20px",
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+              >
+                <div
+                  style={{
+                    position: "absolute",
+                    zIndex: 10,
+                    top: 0,
+                    left: "0",
+                    width: `${(startTime / duration) * 100}%`,
+                    height: "100%",
+                    backgroundColor: "rgba(128, 128, 128, 0.5)",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "45%",
+                      right: 0,
+                      width: "10px",
+                      height: "10%",
+                      backgroundColor: "yellowgreen",
+                      cursor: "ew-resize",
+                    }}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, "start")}
+                  />
+                </div>
+                <div
+                  style={{
+                    position: "absolute",
+                    zIndex: 10,
+                    top: 0,
+                    right: "0",
+                    width: `${(1 - endTime / duration) * 100}%`,
+                    height: "100%",
+                    backgroundColor: "rgba(128, 128, 128, 0.5)",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "45%",
+                      left: 0,
+                      width: "10px",
+                      height: "10%",
+                      backgroundColor: "yellowgreen",
+                      cursor: "ew-resize",
+                    }}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, "end")}
+                  />
+                </div>
+                <img
+                  src="melspecs/v0d00fg10000cbmruq3c77u9rr5r3h30.png"
+                  alt="Mel Spectrogram"
+                  style={{ width: "100%", height: "auto" }}
+                  draggable={false}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: `calc(12px + ${(currentTime / duration) * 97.8}%)`,
+                    width: "2px",
+                    height: "90%",
+                    backgroundColor: "red",
+                  }}
+                />
+              </div>
+              <div>
+                <Title level={5}>标注事件</Title>
+                <Form
+                  form={form}
+                  name="annotation"
+                  layout="inline"
+                  onFinish={onFinish}
+                  style={{ width: "80%", marginTop: "20px" }}
+                >
+                  <Form.Item
+                    label="起始时间"
+                    name="startTime"
+                    rules={[
+                      { required: true, message: "请输入起始时间!" },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (!value || value < getFieldValue("endTime")) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(
+                            new Error("起始时间必须小于结束时间!")
+                          );
+                        },
+                      }),
+                    ]}
+                  >
+                    <InputNumber
+                      min={0}
+                      max={duration}
+                      precision={2}
+                      onChange={handleStartTimeChange}
+                      disabled={isAudioIrrelevant}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    label="结束时间"
+                    name="endTime"
+                    rules={[
+                      { required: true, message: "请输入结束时间!" },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          if (!value || value > getFieldValue("startTime")) {
+                            return Promise.resolve();
+                          }
+                          return Promise.reject(
+                            new Error("结束时间必须大于起始时间!")
+                          );
+                        },
+                      }),
+                    ]}
+                  >
+                    <InputNumber
+                      min={0}
+                      max={duration}
+                      precision={2}
+                      onChange={handleEndTimeChange}
+                      disabled={isAudioIrrelevant}
+                    />
+                  </Form.Item>
+                  <Form.Item name="audioIrrelevant" valuePropName="checked">
+                    <Checkbox
+                      onChange={(e) => {
+                        setIsAudioIrrelevant(e.target.checked);
+                        form.setFieldsValue({
+                          startTime: 0,
+                          endTime: duration,
+                        });
+                      }}
+                    >
+                      音频与类别无关
+                    </Checkbox>
+                  </Form.Item>
+                  <Form.Item>
+                    <Button type="primary" htmlType="submit">
+                      提交
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </div>
+              <div>
+                <Title level={5}>标注历史</Title>
+                <Table
+                  dataSource={annotations}
+                  columns={columns}
+                  style={{ width: "80%", marginTop: "20px", marginBottom: 0 }}
+                />
+              </div>
+            </Card>
+          </Splitter.Panel>
+        </Splitter>
+      </div>
     </div>
   );
 };
