@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Typography, Form, Input, Button, message, Modal } from "antd";
-import { history } from "umi";
+import { history, useModel } from "umi";
 import { login, register } from "@/services/api";
 
 const { Title, Paragraph } = Typography;
 
 const HomePage: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const { user, setUser } = useModel('user');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -18,8 +19,15 @@ const HomePage: React.FC = () => {
   const onFinish = async (values: { name: string; password: string }) => {
     try {
       const response = await login(values.name, values.password);
-      const { token } = response.data;
+      const { 
+        id,
+        username,
+        total_samples,
+        completed_samples,
+        token,
+       } = response.data;
       localStorage.setItem('token', token);
+      setUser({ id, username, total_samples, completed_samples });
       history.push("/annotate");
     } catch (error) {
       message.error('登录失败，请检查用户名和密码');
