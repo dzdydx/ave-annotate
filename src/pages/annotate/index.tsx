@@ -16,7 +16,12 @@ import {
 } from "antd";
 import { history } from "umi";
 import ReactPlayer from "react-player";
-import { getVideoInfo, getAnnotations, postAnnotation, getProgress } from "@/services/api";
+import {
+  getVideoInfo,
+  getAnnotations,
+  postAnnotation,
+  getProgress,
+} from "@/services/api";
 import config from "@/global";
 import { Annotation } from "@/services/typings";
 
@@ -71,12 +76,12 @@ const AnnotatePage: React.FC = () => {
     {
       title: "标注时间",
       dataIndex: "annotateTime",
-      key: "annotateTime"
-    }
+      key: "annotateTime",
+    },
   ];
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
       message.error("请先登录");
       history.push("/");
@@ -112,12 +117,35 @@ const AnnotatePage: React.FC = () => {
   useEffect(() => {
     if (duration > 0) {
       setEndTime(duration - 1);
+      form.resetFields();
       form.setFieldsValue({ startTime: 1, endTime: duration - 1 });
     }
   }, [duration]);
 
+  //
+
   const onFinish = (values: any) => {
-    console.log("Form values:", values);
+    const { startTime, endTime, audioIrrelevant } = values;
+    postAnnotation({
+      videoID,
+      startTime,
+      endTime,
+      audioIrrelevant,
+    }).then((res) => {
+      if (res.status === 201) {
+        message.success("标注成功");
+        setCompletedSamples(completedSamples + 1);
+        
+        // 获取下一个视频的信息
+        getVideoInfo().then((res) => {
+          setVideoID(res.data.videoID);
+          setVideoURL(res.data.videoURL);
+          setVideoTag(res.data.category);
+        });
+      } else {
+        message.error("标注失败");
+      }
+    });
   };
 
   const handleStartTimeChange = (value: number | null) => {
@@ -182,7 +210,6 @@ const AnnotatePage: React.FC = () => {
       />
       <div
         style={{
-          height: "100%",
           padding: "48px 48px",
           display: "flex",
           flexDirection: "column",
@@ -190,21 +217,29 @@ const AnnotatePage: React.FC = () => {
           justifyContent: "center",
         }}
       >
-        <Splitter
-          style={{ height: "100%", boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}
-        >
-          <Splitter.Panel defaultSize="40%" min="30%" max="70%">
-            <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
-              <ReactPlayer
-                ref={videoRef}
-                controls
-                url={`${config.baseURL}${videoURL}`}
-                width="100%"
-                height="100%"
-                style={{ objectFit: "cover" }}
-                onDuration={(duration) => setDuration(duration)}
-              />
-            </div>
+        <Splitter style={{ boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}>
+          <Splitter.Panel
+            defaultSize="40%"
+            min="30%"
+            max="70%"
+            style={{ height: "100%", overflow: "hidden", maxHeight: "100%" }}
+          >
+            <ReactPlayer
+              ref={videoRef}
+              controls
+              url={`http://localhost:3010${videoURL}`} // ! delete when deploying
+              height="100%"
+              style={{ display: "block", maxWidth: "100%", maxHeight: "100%" }}
+              onDuration={(duration) => setDuration(duration)}
+              config={{
+                file: {
+                  attributes: {
+                    width: "100%",
+                    height: "100%",
+                  },
+                },
+              }}
+            />
           </Splitter.Panel>
           <Splitter.Panel>
             <Card
@@ -245,9 +280,7 @@ const AnnotatePage: React.FC = () => {
                   </div>
                 }
               >
-                <Descriptions.Item label="样本ID">
-                  {videoID}
-                </Descriptions.Item>
+                <Descriptions.Item label="样本ID">{videoID}</Descriptions.Item>
                 <Descriptions.Item label="文件标签">
                   {videoTag}
                 </Descriptions.Item>

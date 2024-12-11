@@ -8,3 +8,5 @@
 /dist
 .swc
 /public
+pnpm-lock.yaml
+yarn.lock
