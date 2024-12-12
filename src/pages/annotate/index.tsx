@@ -13,6 +13,8 @@ import {
   Checkbox,
   Skeleton,
   Progress,
+  Row,
+  Col,
 } from "antd";
 import { history } from "umi";
 import ReactPlayer from "react-player";
@@ -24,6 +26,7 @@ import {
 } from "@/services/api";
 import config from "@/global";
 import { Annotation } from "@/services/typings";
+import WavDisplay from "./components/WavDisplay";
 
 const { Title, Paragraph } = Typography;
 
@@ -38,13 +41,12 @@ const AnnotatePage: React.FC = () => {
   const [videoID, setVideoID] = useState("");
   const [videoURL, setVideoURL] = useState("");
   const [videoTag, setVideoTag] = useState("");
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement>();
 
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
-  const [startTime, setStartTime] = useState(1);
-  const [endTime, setEndTime] = useState(1);
   const [isAudioIrrelevant, setIsAudioIrrelevant] = useState(false);
 
   const columns = [
@@ -115,14 +117,10 @@ const AnnotatePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (duration > 0) {
-      setEndTime(duration - 1);
-      form.resetFields();
-      form.setFieldsValue({ startTime: 1, endTime: duration - 1 });
+    if (videoRef.current) {
+      setVideoElement(videoRef.current.getInternalPlayer() as HTMLVideoElement);
     }
-  }, [duration]);
-
-  //
+  }, [videoURL]);
 
   const onFinish = (values: any) => {
     const { startTime, endTime, audioIrrelevant } = values;
@@ -135,7 +133,9 @@ const AnnotatePage: React.FC = () => {
       if (res.status === 201) {
         message.success("标注成功");
         setCompletedSamples(completedSamples + 1);
-        
+
+        setVideoElement(undefined);
+
         // 获取下一个视频的信息
         getVideoInfo().then((res) => {
           setVideoID(res.data.videoID);
@@ -145,58 +145,10 @@ const AnnotatePage: React.FC = () => {
       } else {
         message.error("标注失败");
       }
+
+      form.resetFields();
+      setIsAudioIrrelevant(false);
     });
-  };
-
-  const handleStartTimeChange = (value: number | null) => {
-    if (value !== null && value < endTime) {
-      setStartTime(value);
-    }
-  };
-
-  const handleEndTimeChange = (value: number | null) => {
-    if (value !== null && value > startTime) {
-      setEndTime(value);
-    }
-  };
-
-  const handleDragStart = (
-    e: React.DragEvent<HTMLDivElement>,
-    type: "start" | "end"
-  ) => {
-    e.dataTransfer.setData("type", type);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    const type = e.dataTransfer.getData("type");
-    const boundingRect = e.currentTarget.getBoundingClientRect();
-    if (type === "start") {
-      const relativeX = e.clientX - boundingRect.left;
-      const newTime = parseFloat(
-        ((relativeX / e.currentTarget.clientWidth) * duration).toFixed(2)
-      );
-      if (newTime >= endTime) {
-        message.info("起始时间必须小于结束时间");
-        setStartTime(endTime - 0.5);
-        form.setFieldsValue({ startTime: endTime - 0.5 });
-      } else {
-        setStartTime(newTime);
-        form.setFieldsValue({ startTime: newTime });
-      }
-    } else if (type === "end") {
-      const relativeX = boundingRect.right - e.clientX;
-      const newTime = parseFloat(
-        ((1 - relativeX / e.currentTarget.clientWidth) * duration).toFixed(2)
-      );
-      if (newTime <= startTime) {
-        message.info("结束时间必须大于起始时间");
-        setEndTime(startTime + 0.5);
-        form.setFieldsValue({ endTime: startTime + 0.5 });
-      } else {
-        setEndTime(newTime);
-        form.setFieldsValue({ endTime: newTime });
-      }
-    }
   };
 
   return (
@@ -210,26 +162,30 @@ const AnnotatePage: React.FC = () => {
       />
       <div
         style={{
-          padding: "48px 48px",
+          height: "calc(100vh - 64px - 25px)", // 64px is the height of the Footer
+          padding: "16px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <Splitter style={{ boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)" }}>
-          <Splitter.Panel
-            defaultSize="40%"
-            min="30%"
-            max="70%"
-            style={{ height: "100%", overflow: "hidden", maxHeight: "100%" }}
-          >
+        <Row
+          wrap={false}
+          style={{ boxShadow: "0 0 10px rgba(0, 0, 0, 0.1)", height: "100%" }}
+          gutter={8}
+        >
+          <Col span={8}>
             <ReactPlayer
               ref={videoRef}
               controls
-              url={`http://localhost:3010${videoURL}`} // ! delete when deploying
+              url={`${config.baseURL}${videoURL}`} // ! delete when deploying
               height="100%"
-              style={{ display: "block", maxWidth: "100%", maxHeight: "100%" }}
+              width="100%"
+              style={{
+                maxHeight: "100%",
+                maxWidth: "100%",
+              }}
               onDuration={(duration) => setDuration(duration)}
               config={{
                 file: {
@@ -240,19 +196,26 @@ const AnnotatePage: React.FC = () => {
                 },
               }}
             />
-          </Splitter.Panel>
-          <Splitter.Panel>
+          </Col>
+          <Col
+            span={16}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+            }}
+          >
             <Card
               title={`${annotatorName}，你好！`}
               style={{
-                height: "auto",
+                flex: 1,
                 display: "flex",
                 flexDirection: "column",
-                padding: "16px",
               }}
               styles={{
                 body: {
                   flex: 1,
+                  height: "100%",
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
@@ -290,79 +253,12 @@ const AnnotatePage: React.FC = () => {
               </Descriptions>
               <div
                 style={{
-                  position: "relative",
-                  width: "80%",
                   marginTop: "20px",
                 }}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDrop}
               >
-                <div
-                  style={{
-                    position: "absolute",
-                    zIndex: 10,
-                    top: 0,
-                    left: "0",
-                    width: `${(startTime / duration) * 100}%`,
-                    height: "100%",
-                    backgroundColor: "rgba(128, 128, 128, 0.5)",
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "45%",
-                      right: 0,
-                      width: "10px",
-                      height: "10%",
-                      backgroundColor: "yellowgreen",
-                      cursor: "ew-resize",
-                    }}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, "start")}
-                  />
-                </div>
-                <div
-                  style={{
-                    position: "absolute",
-                    zIndex: 10,
-                    top: 0,
-                    right: "0",
-                    width: `${(1 - endTime / duration) * 100}%`,
-                    height: "100%",
-                    backgroundColor: "rgba(128, 128, 128, 0.5)",
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "45%",
-                      left: 0,
-                      width: "10px",
-                      height: "10%",
-                      backgroundColor: "yellowgreen",
-                      cursor: "ew-resize",
-                    }}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, "end")}
-                  />
-                </div>
-                <img
-                  src="melspecs/v0d00fg10000cbmruq3c77u9rr5r3h30.png"
-                  alt="Mel Spectrogram"
-                  style={{ width: "100%", height: "auto" }}
-                  draggable={false}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: `calc(12px + ${(currentTime / duration) * 97.8}%)`,
-                    width: "2px",
-                    height: "90%",
-                    backgroundColor: "red",
-                  }}
-                />
+                {videoRef.current && videoElement && duration > 0 && (
+                  <WavDisplay videoRef={videoElement} />
+                )}
               </div>
               <div>
                 <Title level={5}>标注事件</Title>
@@ -394,7 +290,6 @@ const AnnotatePage: React.FC = () => {
                       min={0}
                       max={duration}
                       precision={2}
-                      onChange={handleStartTimeChange}
                       disabled={isAudioIrrelevant}
                     />
                   </Form.Item>
@@ -419,7 +314,6 @@ const AnnotatePage: React.FC = () => {
                       min={0}
                       max={duration}
                       precision={2}
-                      onChange={handleEndTimeChange}
                       disabled={isAudioIrrelevant}
                     />
                   </Form.Item>
@@ -443,17 +337,21 @@ const AnnotatePage: React.FC = () => {
                   </Form.Item>
                 </Form>
               </div>
-              <div>
+              <div
+                style={{
+                  flexGrow: 1,
+                }}
+              >
                 <Title level={5}>标注历史</Title>
                 <Table
                   dataSource={annotations}
                   columns={columns}
-                  style={{ width: "80%", marginTop: "20px", marginBottom: 0 }}
+                  style={{ height: "100%", marginTop: "20px", marginBottom: 0 }}
                 />
               </div>
             </Card>
-          </Splitter.Panel>
-        </Splitter>
+          </Col>
+        </Row>
       </div>
     </div>
   );
