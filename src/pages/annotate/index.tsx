@@ -310,7 +310,6 @@ const AnnotatePage: React.FC = () => {
                       min={0}
                       max={duration}
                       precision={2}
-                      disabled={isAudioIrrelevant}
                     />
                   </Form.Item>
                   <Form.Item
@@ -334,17 +333,12 @@ const AnnotatePage: React.FC = () => {
                       min={0}
                       max={duration}
                       precision={2}
-                      disabled={isAudioIrrelevant}
                     />
                   </Form.Item>
                   <Form.Item name="audioIrrelevant" valuePropName="checked">
                     <Checkbox
                       onChange={(e) => {
                         setIsAudioIrrelevant(e.target.checked);
-                        form.setFieldsValue({
-                          startTime: 0,
-                          endTime: duration,
-                        });
                       }}
                     >
                       音频与类别无关
