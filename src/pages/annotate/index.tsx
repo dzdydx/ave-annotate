@@ -138,12 +138,13 @@ const AnnotatePage: React.FC = () => {
   };
 
   const onFinish = (values: any) => {
-    const { startTime, endTime, audioIrrelevant } = values;
+    const { startTime, endTime, audioIrrelevant = false, fileInvalid = false } = values;
     postAnnotation({
       videoID,
       startTime,
       endTime,
       audioIrrelevant,
+      fileInvalid,
     }).then((res) => {
       if (res.status === 201) {
         message.success("标注成功");
@@ -247,14 +248,16 @@ const AnnotatePage: React.FC = () => {
                     }}
                   >
                     <Title level={5}>视频信息</Title>
-                    {
-                      // TODO: add this button back
-                      /* <Space size="large">
-                    <Button icon={<RightOutlined />} onClick={() => {
-                      history.push(`/annotate?videoID=${nextVideoID}`);
-                    }}>下一个文件</Button>
-                  </Space> */
-                    }
+                    <Space size="large">
+                    <Button type="primary" danger onClick={() => {
+                      onFinish({
+                        startTime: 0,
+                        endTime: duration,
+                        audioIrrelevant: true,
+                        fileInvalid: true
+                      })
+                    }}>视频文件无效</Button>
+                  </Space> 
                   </div>
                 }
               >

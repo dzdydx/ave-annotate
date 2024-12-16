@@ -6,4 +6,5 @@ export interface Annotation {
   audioIrrelevant: boolean;
   annotator?: string;
   annotateTime?: string;
+  fileInvalid?: boolean;
 }

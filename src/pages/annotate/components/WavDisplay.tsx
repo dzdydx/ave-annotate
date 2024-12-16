@@ -47,8 +47,9 @@ const WavDisplay = ({
     wavesurfer?.registerPlugin(
       Spectrogram.create({
         container: spectrogramRef.current || undefined,
-        height: 300, // FIXME: This won't work, height is always 100
+        height: 300, // FIXME: This won't work, height is always 64
         fftSamples: 1024,
+        labels: true,
         scale: "mel",
         windowFunc: "hann",
       })
