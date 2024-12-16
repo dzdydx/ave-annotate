@@ -195,7 +195,8 @@ const AnnotatePage: React.FC = () => {
             <ReactPlayer
               ref={videoRef}
               controls
-              url={`${config.baseURL}${videoURL}`} // ! delete when deploying
+              //url={`${config.baseURL}${videoURL}`} // ! delete when deploying
+              url={videoURL}
               height="100%"
               width="100%"
               style={{
