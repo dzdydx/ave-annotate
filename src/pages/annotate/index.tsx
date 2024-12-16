@@ -17,6 +17,7 @@ import {
   Col,
 } from "antd";
 import { history } from "umi";
+import dayjs from "dayjs";
 import ReactPlayer from "react-player";
 import {
   getVideoInfo,
@@ -102,7 +103,16 @@ const AnnotatePage: React.FC = () => {
       setVideoTag(videoInfo.data.category);
 
       const annotationInfo = await getAnnotations(videoInfo.data.videoID);
-      setAnnotations(annotationInfo.data.annotations);
+      setAnnotations(annotationInfo.data.data.map((item) => {
+        return {
+          id: item.id,
+          annotator: item.annotator,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          audioIrrelevant: item.audioIrrelevant == 1 ? "❌ 无关" : "✅ 有关",
+          annotateTime: dayjs(item.annotateTime).format("YYYY-MM-DD HH:mm:ss"),
+        };
+      }));
     };
 
     init();
