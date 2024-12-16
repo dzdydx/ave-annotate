@@ -47,6 +47,7 @@ const AnnotatePage: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
 
+  const [eventBoundary, setEventBoundary] = useState<number[]>([0, 3]);
   const [isAudioIrrelevant, setIsAudioIrrelevant] = useState(false);
 
   const columns = [
@@ -121,6 +122,20 @@ const AnnotatePage: React.FC = () => {
       setVideoElement(videoRef.current.getInternalPlayer() as HTMLVideoElement);
     }
   }, [videoURL]);
+
+  useEffect(() => {
+    form.setFieldsValue({
+      startTime: eventBoundary[0],
+      endTime: eventBoundary[1],
+    });
+  }, [eventBoundary]);
+
+  const handleFormChange = (changedValues: any) => {
+    const { startTime, endTime } = changedValues;
+    if (startTime !== undefined || endTime !== undefined) {
+      setEventBoundary([startTime ?? eventBoundary[0], endTime ?? eventBoundary[1]]);
+    }
+  };
 
   const onFinish = (values: any) => {
     const { startTime, endTime, audioIrrelevant } = values;
@@ -257,7 +272,7 @@ const AnnotatePage: React.FC = () => {
                 }}
               >
                 {videoRef.current && videoElement && duration > 0 && (
-                  <WavDisplay videoRef={videoElement} />
+                  <WavDisplay videoRef={videoElement} eventBoundary={eventBoundary} setEventBoundary={setEventBoundary} />
                 )}
               </div>
               <div>
@@ -267,6 +282,7 @@ const AnnotatePage: React.FC = () => {
                   name="annotation"
                   layout="inline"
                   onFinish={onFinish}
+                  onValuesChange={handleFormChange}
                   style={{ width: "80%", marginTop: "20px" }}
                 >
                   <Form.Item
