@@ -4,19 +4,18 @@ import {
   Form,
   InputNumber,
   Button,
-  Splitter,
   Table,
   Card,
   message,
   Descriptions,
   Space,
-  Checkbox,
-  Skeleton,
+  Radio,
   Progress,
   Row,
   Col,
 } from "antd";
 import { history } from "umi";
+import dayjs from "dayjs";
 import ReactPlayer from "react-player";
 import {
   getVideoInfo,
@@ -77,6 +76,11 @@ const AnnotatePage: React.FC = () => {
       key: "audioIrrelevant",
     },
     {
+      title: "是否有背景音乐",
+      dataIndex: "haveBGM",
+      key: "haveBGM",
+    },
+    {
       title: "标注时间",
       dataIndex: "annotateTime",
       key: "annotateTime",
@@ -102,7 +106,21 @@ const AnnotatePage: React.FC = () => {
       setVideoTag(videoInfo.data.category);
 
       const annotationInfo = await getAnnotations(videoInfo.data.videoID);
-      setAnnotations(annotationInfo.data.annotations);
+      setAnnotations(
+        annotationInfo.data.data.map((item) => {
+          return {
+            id: item.id,
+            annotator: item.annotator,
+            startTime: item.startTime,
+            endTime: item.endTime,
+            audioIrrelevant: item.audioIrrelevant == 1 ? "❌ 无关" : "✅ 有关",
+            haveBGM: item.haveBGM == 1 ? "✅ 有" : "❌ 无",
+            annotateTime: dayjs(item.annotateTime).format(
+              "YYYY-MM-DD HH:mm:ss"
+            ),
+          };
+        })
+      );
     };
 
     init();
@@ -133,17 +151,27 @@ const AnnotatePage: React.FC = () => {
   const handleFormChange = (changedValues: any) => {
     const { startTime, endTime } = changedValues;
     if (startTime !== undefined || endTime !== undefined) {
-      setEventBoundary([startTime ?? eventBoundary[0], endTime ?? eventBoundary[1]]);
+      setEventBoundary([
+        startTime ?? eventBoundary[0],
+        endTime ?? eventBoundary[1],
+      ]);
     }
   };
 
   const onFinish = (values: any) => {
-    const { startTime, endTime, audioIrrelevant = false, fileInvalid = false } = values;
+    const {
+      startTime,
+      endTime,
+      audioIrrelevant = false,
+      haveBGM = false,
+      fileInvalid = false,
+    } = values;
     postAnnotation({
       videoID,
       startTime,
       endTime,
       audioIrrelevant,
+      haveBGM,
       fileInvalid,
     }).then((res) => {
       if (res.status === 201) {
@@ -195,7 +223,8 @@ const AnnotatePage: React.FC = () => {
             <ReactPlayer
               ref={videoRef}
               controls
-              url={`${config.baseURL}${videoURL}`} // ! delete when deploying
+              //url={`${config.baseURL}${videoURL}`} // ! delete when deploying
+              url={videoURL}
               height="100%"
               width="100%"
               style={{
@@ -249,15 +278,21 @@ const AnnotatePage: React.FC = () => {
                   >
                     <Title level={5}>视频信息</Title>
                     <Space size="large">
-                    <Button type="primary" danger onClick={() => {
-                      onFinish({
-                        startTime: 0,
-                        endTime: duration,
-                        audioIrrelevant: true,
-                        fileInvalid: true
-                      })
-                    }}>视频文件无效</Button>
-                  </Space> 
+                      <Button
+                        type="primary"
+                        danger
+                        onClick={() => {
+                          onFinish({
+                            startTime: 0,
+                            endTime: duration,
+                            audioIrrelevant: true,
+                            fileInvalid: true,
+                          });
+                        }}
+                      >
+                        视频文件无效
+                      </Button>
+                    </Space>
                   </div>
                 }
               >
@@ -275,7 +310,11 @@ const AnnotatePage: React.FC = () => {
                 }}
               >
                 {videoRef.current && videoElement && duration > 0 && (
-                  <WavDisplay videoRef={videoElement} eventBoundary={eventBoundary} setEventBoundary={setEventBoundary} />
+                  <WavDisplay
+                    videoRef={videoElement}
+                    eventBoundary={eventBoundary}
+                    setEventBoundary={setEventBoundary}
+                  />
                 )}
               </div>
               <div>
@@ -305,12 +344,7 @@ const AnnotatePage: React.FC = () => {
                       }),
                     ]}
                   >
-                    <InputNumber
-                      min={0}
-                      max={duration}
-                      precision={2}
-                      disabled={isAudioIrrelevant}
-                    />
+                    <InputNumber min={0} max={duration} precision={2} />
                   </Form.Item>
                   <Form.Item
                     label="结束时间"
@@ -329,25 +363,29 @@ const AnnotatePage: React.FC = () => {
                       }),
                     ]}
                   >
-                    <InputNumber
-                      min={0}
-                      max={duration}
-                      precision={2}
-                      disabled={isAudioIrrelevant}
-                    />
+                    <InputNumber min={0} max={duration} precision={2} />
                   </Form.Item>
-                  <Form.Item name="audioIrrelevant" valuePropName="checked">
-                    <Checkbox
-                      onChange={(e) => {
-                        setIsAudioIrrelevant(e.target.checked);
-                        form.setFieldsValue({
-                          startTime: 0,
-                          endTime: duration,
-                        });
-                      }}
-                    >
-                      音频与类别无关
-                    </Checkbox>
+                  <Form.Item
+                    name="audioIrrelevant"
+                    label="音频是否与事件相关"
+                    tooltip="所选事件范围内的音频不是由事件产生时选择无关"
+                    required
+                  >
+                    <Radio.Group>
+                      <Radio value={false}>相关</Radio>
+                      <Radio value={true}>无关</Radio>
+                    </Radio.Group>
+                  </Form.Item>
+                  <Form.Item
+                    name="haveBGM"
+                    label="事件区域是否有背景音乐"
+                    tooltip="仅当音乐与事件本身无关时选择是"
+                    required
+                  >
+                    <Radio.Group>
+                      <Radio value={true}>是</Radio>
+                      <Radio value={false}>否</Radio>
+                    </Radio.Group>
                   </Form.Item>
                   <Form.Item>
                     <Button type="primary" htmlType="submit">

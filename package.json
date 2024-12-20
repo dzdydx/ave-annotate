@@ -12,6 +12,7 @@
     "@wavesurfer/react": "^1.0.7",
     "antd": "^5.21.6",
     "axios": "^1.7.7",
+    "dayjs": "^1.11.13",
     "react-player": "^2.16.0",
     "umi": "^4.3.28",
     "wavesurfer.js": "^7.8.10"

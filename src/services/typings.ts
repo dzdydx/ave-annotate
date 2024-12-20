@@ -4,6 +4,7 @@ export interface Annotation {
   startTime: string;
   endTime: string;
   audioIrrelevant: boolean;
+  haveBGM: boolean;
   annotator?: string;
   annotateTime?: string;
   fileInvalid?: boolean;
