@@ -92,6 +92,21 @@ export async function getAnnotations(videoID: string) {
   });
 }
 
+export async function getAllAnnotations(
+  page: number,
+  limit: number
+): Promise<{
+  data: Annotation[];
+  total: number;
+  page: number;
+  totalPages: number;
+}> {
+  const response = await JWTAuthInstance.get("/api/all-annotations", {
+    params: { page, limit },
+  });
+  return response.data;
+}
+
 export async function postAnnotation(data: Annotation) {
   return JWTAuthInstance.post<Annotation>("/api/annotations", data);
 }
