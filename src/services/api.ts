@@ -110,3 +110,11 @@ export async function getAllAnnotations(
 export async function postAnnotation(data: Annotation) {
   return JWTAuthInstance.post<Annotation>("/api/annotations", data);
 }
+
+export async function editAnnotation(data: Annotation) {
+  return JWTAuthInstance.put<Annotation>("/api/annotations", data);
+}
+
+export async function deleteAnnotation(id: number) {
+  return JWTAuthInstance.delete(`/api/annotations/${id}`);
+}
