@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Card, Table, TableProps } from "antd";
+import { Button, Card, Table, TableProps } from "antd";
 import { getAllAnnotations } from "@/services/api";
 import { Annotation } from "@/services/typings";
 import dayjs from "dayjs";
+import { history } from "umi";
 
 const AllAnnotationsPage: React.FC = () => {
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -70,7 +71,9 @@ const AllAnnotationsPage: React.FC = () => {
   ];
 
   return (
-    <Card title="所有标注记录">
+    <Card title="所有标注记录"
+      extra={<Button onClick={() => history.push("/annotate")}>返回</Button>}
+    >
       <Table
         dataSource={annotations}
         columns={columns}

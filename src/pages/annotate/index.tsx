@@ -223,8 +223,8 @@ const AnnotatePage: React.FC = () => {
             <ReactPlayer
               ref={videoRef}
               controls
-              //url={`${config.baseURL}${videoURL}`} // ! delete when deploying
-              url={videoURL}
+              url={`${config.baseURL}${videoURL}`} // ! delete when deploying
+              //url={videoURL}
               height="100%"
               width="100%"
               style={{
@@ -278,6 +278,9 @@ const AnnotatePage: React.FC = () => {
                   >
                     <Title level={5}>视频信息</Title>
                     <Space size="large">
+                      <Button onClick={() => history.push("/all")}>
+                        查看/修改标注
+                      </Button>
                       <Button
                         type="primary"
                         danger
