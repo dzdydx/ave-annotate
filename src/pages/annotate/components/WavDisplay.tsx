@@ -26,9 +26,9 @@ const WavDisplay = ({
 
   const { wavesurfer, isReady } = useWavesurfer({
     container: containerRef,
-    height: 100,
-    waveColor: "rgb(200, 0, 200)",
-    progressColor: "rgb(100, 0, 100)",
+    height: 80,
+    waveColor: "#6791BB",
+    progressColor: "rgb(180, 0, 100)",
     plugins: useMemo(
       () => [
         regions,
