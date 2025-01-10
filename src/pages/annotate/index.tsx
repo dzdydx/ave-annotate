@@ -212,6 +212,7 @@ const AnnotatePage: React.FC = () => {
 
       form.resetFields();
       setIsAudioIrrelevant(false);
+      setEventBoundary([0, 3]);
     });
   };
 
