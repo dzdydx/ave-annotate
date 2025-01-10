@@ -138,9 +138,26 @@ const AnnotatePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const stopPropagation = (event: KeyboardEvent) => {
+      if (event.code === "Space") {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
     if (videoRef.current) {
       setVideoElement(videoRef.current.getInternalPlayer() as HTMLVideoElement);
+      const videoContainer = videoRef.current.getInternalPlayer().parentNode;
+
+      videoContainer?.addEventListener("keydown", stopPropagation);
     }
+
+    return () => {
+      if (videoRef.current) {
+        const videoContainer = videoRef.current.getInternalPlayer().parentNode;
+        videoContainer?.removeEventListener("keydown", stopPropagation);
+      }
+    };
   }, [videoURL]);
 
   useEffect(() => {

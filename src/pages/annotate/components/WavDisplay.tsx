@@ -54,6 +54,26 @@ const WavDisplay = ({
       })
     );
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === "Space") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (wavesurfer?.isPlaying()) {
+          wavesurfer?.pause();
+        } else {
+          wavesurfer?.play();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [wavesurfer]);
+
+  useEffect(() => {
     wavesurfer?.once("redrawcomplete", () => {
       regions.addRegion({
         start: eventBoundary[0],
