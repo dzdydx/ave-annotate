@@ -36,6 +36,7 @@ const AnnotatePage: React.FC = () => {
   const [annotatorName, setAnnotatorName] = useState("");
   const [completedSamples, setCompletedSamples] = useState(0);
   const [totalSamples, setTotalSamples] = useState(0);
+  const [myAnnotationCount, setMyAnnotationCount] = useState(0);
 
   const [videoID, setVideoID] = useState("");
   const [videoURL, setVideoURL] = useState("");
@@ -99,6 +100,7 @@ const AnnotatePage: React.FC = () => {
       setAnnotatorName(userInfo.data.username);
       setCompletedSamples(userInfo.data.completedSamples);
       setTotalSamples(userInfo.data.totalSamples);
+      setMyAnnotationCount(userInfo.data.myAnnotationCount);
 
       const videoInfo = await getVideoInfo();
       setVideoID(videoInfo.data.videoID);
@@ -177,6 +179,7 @@ const AnnotatePage: React.FC = () => {
       if (res.status === 201) {
         message.success("标注成功");
         setCompletedSamples(completedSamples + 1);
+        setMyAnnotationCount(myAnnotationCount + 1);
 
         setVideoElement(undefined);
 
@@ -251,7 +254,7 @@ const AnnotatePage: React.FC = () => {
             }}
           >
             <Card
-              title={`${annotatorName}，你好！`}
+              title={`${annotatorName}，你好！你完成了${myAnnotationCount}个标注`}
               style={{
                 flex: 1,
                 display: "flex",

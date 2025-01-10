@@ -72,6 +72,7 @@ export async function getProgress() {
     username: string;
     totalSamples: number;
     completedSamples: number;
+    myAnnotationCount: number;
   }>("/api/progress");
 }
 
