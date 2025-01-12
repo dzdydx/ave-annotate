@@ -117,9 +117,7 @@ const AnnotatePage: React.FC = () => {
             endTime: item.endTime,
             audioIrrelevant: item.audioIrrelevant == 1 ? "❌ 无关" : "✅ 有关",
             haveBGM: item.haveBGM == 1 ? "✅ 有" : "❌ 无",
-            annotateTime: dayjs(item.annotateTime).format(
-              "YYYY-MM-DD HH:mm:ss"
-            ),
+          annotateTime: dayjs(Number(item.annotateTime)).format("YYYY-MM-DD HH:mm:ss"),
           };
         })
       );

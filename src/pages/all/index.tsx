@@ -100,7 +100,7 @@ const AllAnnotationsPage: React.FC = () => {
       title: "标注时间",
       dataIndex: "annotateTime",
       key: "annotateTime",
-      render: (text) => dayjs(text).format("YYYY-MM-DD HH:mm:ss"),
+      render: (text) => dayjs(Number(text)).format("YYYY-MM-DD HH:mm:ss"),
     },
     {
       title: "操作",
