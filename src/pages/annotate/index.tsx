@@ -102,7 +102,17 @@ const AnnotatePage: React.FC = () => {
       setTotalSamples(userInfo.data.totalSamples);
       setMyAnnotationCount(userInfo.data.myAnnotationCount);
 
-      const videoInfo = await getVideoInfo();
+      // get video id from url search param if exists
+      const searchParams = new URLSearchParams(window.location.search);
+      const videoID = searchParams.get("videoID");
+
+      let videoInfo;
+      if (videoID) {
+        videoInfo = await getVideoInfo(videoID);
+      } else {
+        videoInfo = await getVideoInfo();
+      }
+
       setVideoID(videoInfo.data.videoID);
       setVideoURL(videoInfo.data.videoURL);
       setVideoTag(videoInfo.data.category);
@@ -121,6 +131,17 @@ const AnnotatePage: React.FC = () => {
           };
         })
       );
+
+      if (annotationInfo.data.data.length > 0) {
+        const lastAnnotation = annotationInfo.data.data[annotationInfo.data.data.length - 1];
+        form.setFieldsValue({
+          startTime: lastAnnotation.startTime,
+          endTime: lastAnnotation.endTime,
+          haveBGM: lastAnnotation.haveBGM == 1,
+          audioIrrelevant: lastAnnotation.audioIrrelevant == 1,
+        });
+        setEventBoundary([lastAnnotation.startTime, lastAnnotation.endTime]);
+      }
     };
 
     init();

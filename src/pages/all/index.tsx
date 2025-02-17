@@ -109,6 +109,13 @@ const AllAnnotationsPage: React.FC = () => {
         <Space size="large">
           <a
             onClick={() => {
+              history.push(`/annotate?videoID=${record.videoID}`);
+            }}
+          >
+            查看
+          </a>
+          <a
+            onClick={() => {
               setAnnotationID(record.id);
               setAnnotator(record.annotator);
               setIsModalVisible(true);
