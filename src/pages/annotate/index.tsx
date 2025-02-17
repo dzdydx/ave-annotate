@@ -165,16 +165,22 @@ const AnnotatePage: React.FC = () => {
     };
 
     if (videoRef.current) {
-      setVideoElement(videoRef.current.getInternalPlayer() as HTMLVideoElement);
-      const videoContainer = videoRef.current.getInternalPlayer().parentNode;
+      const internalPlayer = videoRef.current.getInternalPlayer();
+      if (internalPlayer) {
+        setVideoElement(internalPlayer as HTMLVideoElement);
+        const videoContainer = internalPlayer.parentNode;
 
-      videoContainer?.addEventListener("keydown", stopPropagation);
+        videoContainer?.addEventListener("keydown", stopPropagation);
+      }
     }
 
     return () => {
       if (videoRef.current) {
-        const videoContainer = videoRef.current.getInternalPlayer().parentNode;
-        videoContainer?.removeEventListener("keydown", stopPropagation);
+        const internalPlayer = videoRef.current.getInternalPlayer();
+        if (internalPlayer) {
+          const videoContainer = internalPlayer.parentNode;
+          videoContainer?.removeEventListener("keydown", stopPropagation);
+        }
       }
     };
   }, [videoURL]);
