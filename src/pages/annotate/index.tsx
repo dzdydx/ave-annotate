@@ -88,6 +88,64 @@ const AnnotatePage: React.FC = () => {
     },
   ];
 
+  const loadVideoInfo = async () => {
+    const userInfo = await getProgress();
+    setAnnotatorName(userInfo.data.username);
+    setCompletedSamples(userInfo.data.completedSamples);
+    setTotalSamples(userInfo.data.totalSamples);
+    setMyAnnotationCount(userInfo.data.myAnnotationCount);
+
+    // get video id from url search param if exists
+    const searchParams = new URLSearchParams(window.location.search);
+    const videoID = searchParams.get("videoID");
+
+    let videoInfo;
+    if (videoID) {
+      videoInfo = await getVideoInfo(videoID);
+    } else {
+      videoInfo = await getVideoInfo();
+    }
+
+    setVideoID(videoInfo.data.videoID);
+    setVideoURL(videoInfo.data.videoURL);
+    setVideoTag(videoInfo.data.category);
+
+    return videoInfo.data.videoID;
+  };
+
+  const loadAnnotations = async (videoID: string) => {
+    const annotationInfo = await getAnnotations(videoID);
+    setAnnotations(
+      annotationInfo.data.data.map((item) => {
+        return {
+          id: item.id,
+          annotator: item.annotator,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          audioIrrelevant: item.audioIrrelevant == 1 ? "❌ 无关" : "✅ 有关",
+          haveBGM: item.haveBGM == 1 ? "✅ 有" : "❌ 无",
+          annotateTime: dayjs(Number(item.annotateTime)).format(
+            "YYYY-MM-DD HH:mm:ss"
+          ),
+        };
+      })
+    );
+
+    if (annotationInfo.data.data.length > 0) {
+      const lastAnnotation =
+        annotationInfo.data.data[annotationInfo.data.data.length - 1];
+      form.setFieldsValue({
+        startTime: lastAnnotation.startTime,
+        endTime: lastAnnotation.endTime,
+        haveBGM: lastAnnotation.haveBGM == 1,
+        audioIrrelevant: lastAnnotation.audioIrrelevant == 1,
+      });
+      setEventBoundary([lastAnnotation.startTime, lastAnnotation.endTime]);
+    }
+
+    return annotationInfo.data.data;
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -95,56 +153,9 @@ const AnnotatePage: React.FC = () => {
       history.push("/");
     }
 
-    const init = async () => {
-      const userInfo = await getProgress();
-      setAnnotatorName(userInfo.data.username);
-      setCompletedSamples(userInfo.data.completedSamples);
-      setTotalSamples(userInfo.data.totalSamples);
-      setMyAnnotationCount(userInfo.data.myAnnotationCount);
-
-      // get video id from url search param if exists
-      const searchParams = new URLSearchParams(window.location.search);
-      const videoID = searchParams.get("videoID");
-
-      let videoInfo;
-      if (videoID) {
-        videoInfo = await getVideoInfo(videoID);
-      } else {
-        videoInfo = await getVideoInfo();
-      }
-
-      setVideoID(videoInfo.data.videoID);
-      setVideoURL(videoInfo.data.videoURL);
-      setVideoTag(videoInfo.data.category);
-
-      const annotationInfo = await getAnnotations(videoInfo.data.videoID);
-      setAnnotations(
-        annotationInfo.data.data.map((item) => {
-          return {
-            id: item.id,
-            annotator: item.annotator,
-            startTime: item.startTime,
-            endTime: item.endTime,
-            audioIrrelevant: item.audioIrrelevant == 1 ? "❌ 无关" : "✅ 有关",
-            haveBGM: item.haveBGM == 1 ? "✅ 有" : "❌ 无",
-          annotateTime: dayjs(Number(item.annotateTime)).format("YYYY-MM-DD HH:mm:ss"),
-          };
-        })
-      );
-
-      if (annotationInfo.data.data.length > 0) {
-        const lastAnnotation = annotationInfo.data.data[annotationInfo.data.data.length - 1];
-        form.setFieldsValue({
-          startTime: lastAnnotation.startTime,
-          endTime: lastAnnotation.endTime,
-          haveBGM: lastAnnotation.haveBGM == 1,
-          audioIrrelevant: lastAnnotation.audioIrrelevant == 1,
-        });
-        setEventBoundary([lastAnnotation.startTime, lastAnnotation.endTime]);
-      }
-    };
-
-    init();
+    loadVideoInfo().then((videoID) => {
+      loadAnnotations(videoID);
+    });
   }, []);
 
   useEffect(() => {
@@ -202,7 +213,7 @@ const AnnotatePage: React.FC = () => {
     }
   };
 
-  const onFinish = (values: any) => {
+  const onFinish = async (values: any) => {
     const {
       startTime,
       endTime,
@@ -210,35 +221,41 @@ const AnnotatePage: React.FC = () => {
       haveBGM = false,
       fileInvalid = false,
     } = values;
-    postAnnotation({
-      videoID,
-      startTime,
-      endTime,
-      audioIrrelevant,
-      haveBGM,
-      fileInvalid,
-    }).then((res) => {
+
+    try {
+      const res = await postAnnotation({
+        videoID,
+        startTime,
+        endTime,
+        audioIrrelevant,
+        haveBGM,
+        fileInvalid,
+      });
+
       if (res.status === 201) {
         message.success("标注成功");
+        if (window.location.search) {
+          history.push(window.location.pathname);
+        }
         setCompletedSamples(completedSamples + 1);
         setMyAnnotationCount(myAnnotationCount + 1);
-
         setVideoElement(undefined);
 
         // 获取下一个视频的信息
-        getVideoInfo().then((res) => {
-          setVideoID(res.data.videoID);
-          setVideoURL(res.data.videoURL);
-          setVideoTag(res.data.category);
-        });
+        const newVideoID = await loadVideoInfo();
+        const annotations = await loadAnnotations(newVideoID);
+
+        if (annotations.length == 0) {
+          form.resetFields();
+          setIsAudioIrrelevant(false);
+          setEventBoundary([0, 3]);
+        }
       } else {
         message.error("标注失败");
       }
-
-      form.resetFields();
-      setIsAudioIrrelevant(false);
-      setEventBoundary([0, 3]);
-    });
+    } catch (error) {
+      message.error("标注失败");
+    }
   };
 
   return (
